@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoStyle Prompt Cockpit II</title>
+    <style>
+        :root {
+            --bg-body: #0a0a0c;
+            --bg-panel: #131316;
+            --bg-input: #1c1c21;
+            --accent: #6366f1; /* Indigo */
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --text-main: #ffffff;
+            --text-muted: #888899;
+            --border: #2a2a35;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- Layout --- */
+        .app-container {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- Sidebar (Controls) --- */
+        aside {
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            overflow-y: auto;
+            z-index: 2;
+            box-shadow: 5px 0 20px rgba(0,0,0,0.2);
+        }
+
+        .brand {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .brand span { color: var(--accent); }
+        .brand .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* --- Inputs --- */
+        input[type="text"], select {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        /* --- Toggles --- */
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .toggle-label { font-size: 0.9rem; }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--bg-input);
+            transition: .3s;
+            border-radius: 34px;
+            border: 1px solid var(--border);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-muted);
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: var(--accent); border-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(20px); background-color: white; }
+
+        /* --- Button --- */
+        .btn-generate {
+            background: linear-gradient(135deg, var(--accent), #4f46e5);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            margin-top: auto;
+            text-align: center;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .btn-generate:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+        .btn-generate:active { transform: translateY(1px); }
+
+        /* --- Main Output Area --- */
+        main {
+            position: relative;
+            background-color: var(--bg-body);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+
+        h2 { margin: 0; font-size: 1rem; font-weight: 500; color: var(--text-muted); }
+
+        .action-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover { background: var(--bg-input); border-color: var(--text-muted); }
+
+        /* --- Code Editor Look --- */
+        .code-wrapper {
+            position: relative;
+            flex: 1;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            color: #a5b3ce; /* Soft blue-grey for code */
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            padding: 1.5rem;
+            resize: none;
+            line-height: 1.6;
+        }
+
+        /* --- Loading Overlay --- */
+        .loader-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(19, 19, 22, 0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loader-overlay.active { opacity: 1; pointer-events: all; }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent);
+            animation: spin 0.8s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        .loading-text { font-size: 0.8rem; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Mobile Responsive */
+        @media (max-width: 800px) {
+            .app-container { grid-template-columns: 1fr; overflow-y: scroll; }
+            aside { height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+            main { height: 600px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <aside>
+            <div class="brand">
+                <div class="dot"></div>
+                AUTOSTYLE <span>COCKPIT</span>
+            </div>
+
+            <div class="control-group">
+                <div class="label">Target Vehicle</div>
+                <input type="text" id="vehicle" value="Porsche 911 GT3" placeholder="Enter vehicle name...">
+            </div>
+
+            <div class="control-group">
+                <div class="label">Modules</div>
+                
+                <div class="toggle-row">
+                    <span class="toggle-label">Scene Transfer</span>
+                    <label class="switch">
+                        <input type="checkbox" id="scene">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-row">
+                    <span class="toggle-label">Livery Transfer</span>
+                    <label class="switch">
+                        <input type="checkbox" id="livery" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-row">
+                    <span class="toggle-label">Wheel Swap</span>
+                    <label class="switch">
+                        <input type="checkbox" id="wheels">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="label">Rendering</div>
+                <select id="finish">
+                    <option value="Matte">Finish: Matte</option>
+                    <option value="Semi Gloss" selected>Finish: Semi Gloss</option>
+                    <option value="Ultra Glossy">Finish: Ultra Glossy</option>
+                </select>
+
+                <select id="reflection">
+                    <option value="Low">Reflection: Low</option>
+                    <option value="Medium" selected>Reflection: Medium</option>
+                    <option value="Mirror Like">Reflection: Mirror Like</option>
+                </select>
+
+                <select id="resolution">
+                    <option value="1080p">Res: 1080p</option>
+                    <option value="2K" selected>Res: 2K</option>
+                    <option value="4K">Res: 4K</option>
+                </select>
+            </div>
+
+            <button class="btn-generate" id="generateBtn">
+                REGENERATE JSON
+            </button>
+        </aside>
+
+        <main>
+            <header>
+                <h2>JSON Payload Preview</h2>
+                <button class="action-btn" id="copyBtn">Copy JSON</button>
+            </header>
+
+            <div class="code-wrapper">
+                <textarea id="output" readonly spellcheck="false"></textarea>
+                
+                <div class="loader-overlay" id="loader">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Building Logic...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // DOM Elements
+        const els = {
+            vehicle: document.getElementById('vehicle'),
+            scene: document.getElementById('scene'),
+            livery: document.getElementById('livery'),
+            wheels: document.getElementById('wheels'),
+            finish: document.getElementById('finish'),
+            reflection: document.getElementById('reflection'),
+            resolution: document.getElementById('resolution'),
+            output: document.getElementById('output'),
+            loader: document.getElementById('loader'),
+            generateBtn: document.getElementById('generateBtn'),
+            copyBtn: document.getElementById('copyBtn')
+        };
+
+        // State Management
+        let isProcessing = false;
+
+        function buildJSON() {
+            const vehicle = els.vehicle.value.trim() || "Generic Vehicle";
+            const useScene = els.scene.checked;
+            const useLivery = els.livery.checked;
+            const useWheels = els.wheels.checked;
+
+            // 1. Dynamic Instruction Construction
+            let instructions = [];
+            instructions.push(`Analyze reference image.`);
+            
+            if (useLivery) {
+                instructions.push(`Extract full livery, decal placement, and color palette.`);
+            } else {
+                instructions.push(`Ignore specific decals, focus on general lighting style.`);
+            }
+
+            if (useWheels) {
+                instructions.push(`Extract wheel geometric design and spoke pattern.`);
+            } else {
+                instructions.push(`Maintain the original OEM rims of the ${vehicle}.`);
+            }
+
+            if (useScene) {
+                instructions.push(`Composite the ${vehicle} into the environment of the reference image.`);
+            } else {
+                instructions.push(`Isolate vehicle on a neutral studio background.`);
+            }
+
+            instructions.push(`Final output: Photorealistic render of a ${vehicle}.`);
+
+            // 2. Rendering Block
+            const renderConfig = {
+                finish: els.finish.value,
+                surface_reflection: els.reflection.value,
+                resolution: els.resolution.value,
+                engine: "cycles_approx",
+                samples: 150
+            };
+
+            // 3. Constraints
+            const constraints = {
+                geometry_lock: true,
+                preserve_identity: true,
+                lighting_match: "high_fidelity",
+                perspective_match: true
+            };
+            
+            // Modify constraints based on input
+            if(useWheels) {
+                constraints.wheel_geometry_lock = false; 
+                constraints.wheel_swap_enabled = true;
+            } else {
+                constraints.wheel_geometry_lock = true;
+            }
+
+            // 4. Assemble Final Object
+            const promptData = {
+                _meta: {
+                    generator: "AutoStyle Cockpit v2",
+                    timestamp: new Date().toISOString()
+                },
+                task: useScene ? "composite_transfer" : "style_transfer",
+                subject: {
+                    model: vehicle,
+                    color_match_reference: true
+                },
+                prompt_instruction: instructions.join(" "),
+                modules: {
+                    livery_transfer: useLivery,
+                    scene_composition: useScene,
+                    wheel_swap: useWheels
+                },
+                constraints: constraints,
+                render_settings: renderConfig
+            };
+
+            // Add Scene Object only if checked
+            if (useScene) {
+                promptData.environment = {
+                    source: "reference_image_background",
+                    shadow_blending: "seamless",
+                    floor_interaction: "reflective"
+                };
+            }
+
+            return JSON.stringify(promptData, null, 2);
+        }
+
+        // Animation & Update Logic
+        function updateOutput(showLoading = false) {
+            if (isProcessing) return;
+
+            if (showLoading) {
+                isProcessing = true;
+                els.loader.classList.add('active');
+                
+                // Simulate calculation delay
+                setTimeout(() => {
+                    els.output.value = buildJSON();
+                    els.loader.classList.remove('active');
+                    isProcessing = false;
+                }, 600); 
+            } else {
+                els.output.value = buildJSON();
+            }
+        }
+
+        // Event Listeners
+        
+        // 1. Text/Select Inputs: Instant update, no loading screen (feels snappy)
+        [els.vehicle, els.finish, els.reflection, els.resolution].forEach(el => {
+            el.addEventListener('input', () => updateOutput(false));
+        });
+
+        // 2. Toggle Switches: Trigger loading screen (implies "Modules" are being loaded/unloaded)
+        [els.scene, els.livery, els.wheels].forEach(el => {
+            el.addEventListener('change', () => updateOutput(true));
+        });
+
+        // 3. Generate Button: Force loading screen
+        els.generateBtn.addEventListener('click', () => updateOutput(true));
+
+        // 4. Copy Button
+        els.copyBtn.addEventListener('click', () => {
+            els.output.select();
+            document.execCommand('copy');
+            
+            const originalText = els.copyBtn.innerText;
+            els.copyBtn.innerText = "COPIED ✓";
+            els.copyBtn.style.borderColor = "#6366f1";
+            els.copyBtn.style.color = "#6366f1";
+            
+            setTimeout(() => {
+                els.copyBtn.innerText = originalText;
+                els.copyBtn.style.borderColor = "";
+                els.copyBtn.style.color = "";
+            }, 1500);
+        });
+
+        // Initial Load
+        updateOutput(false);
+
+    </script>
+</body>
+</html>
