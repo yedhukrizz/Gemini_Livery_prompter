@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Livery Styler Pro</title>
     
     <!-- Fonts -->
@@ -42,15 +42,21 @@
 
         * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
 
-        body {
+        html, body {
             margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Prevent body scroll, handle internally */
+        }
+
+        body {
             background-color: var(--bg-body);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
-            height: 100vh;
             display: flex;
-            overflow: hidden;
             position: relative;
+            touch-action: pan-y; /* Allow vertical scroll gestures */
         }
 
         /* --- Animated Background --- */
@@ -104,7 +110,6 @@
             width: 100%;
             height: 100%;
             position: relative;
-            z-index: 1;
         }
 
         /* --- Glass Sidebar --- */
@@ -130,6 +135,7 @@
             align-items: center;
             justify-content: space-between;
             height: 60px;
+            flex-shrink: 0; /* Prevent header shrinking */
         }
 
         .brand {
@@ -153,6 +159,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 1rem;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling iOS */
         }
 
         /* --- UI Components --- */
@@ -197,9 +204,17 @@
             padding: 10px 12px;
             border-radius: 8px;
             font-family: 'Inter', sans-serif;
-            font-size: 0.85rem;
+            font-size: 16px; /* 16px prevents iOS auto-zoom */
             transition: border 0.2s, background 0.2s;
+            -webkit-appearance: none;
         }
+        
+        textarea {
+            /* Force 16px for mobile to avoid zoom, visually adjust later if needed */
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.5;
+        }
+
         input:focus, select:focus, textarea:focus {
             border-color: var(--primary);
             background: rgba(0,0,0,0.5);
@@ -235,6 +250,9 @@
             display: flex; flex-direction: column;
             background: rgba(5, 5, 7, 0.3); /* Transparent to see background */
             backdrop-filter: blur(10px);
+            position: relative;
+            height: 100%;
+            overflow: hidden;
         }
 
         .top-bar {
@@ -243,6 +261,7 @@
             display: flex; flex-direction: column;
             background: rgba(10, 10, 12, 0.6);
             backdrop-filter: blur(10px);
+            flex-shrink: 0;
         }
         .top-header {
             flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 1rem;
@@ -274,21 +293,80 @@
         .btn-icon:hover { border-color: var(--text-muted); background: var(--bg-surface-hover); }
 
         /* Tab Content */
-        .tab-content { display: none; flex: 1; overflow: hidden; position: relative; }
+        .tab-content { display: none; flex: 1; overflow: hidden; position: relative; height: 100%; }
         .tab-content.active { display: flex; }
 
         /* Editor */
-        .editor-wrap { flex: 1; position: relative; display: flex; }
+        .editor-wrap { flex: 1; position: relative; display: flex; overflow: hidden; }
         .line-numbers {
             width: 30px; background: rgba(0,0,0,0.2); border-right: 1px solid var(--border);
             color: #52525b; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
             line-height: 1.5; padding-top: 1rem; text-align: right; padding-right: 8px;
             user-select: none; display: none;
+            overflow: hidden;
         }
-        textarea {
+        #output {
             flex: 1; background: rgba(0,0,0,0.2); border: none; color: #d4d4d8;
-            font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.5;
+            font-family: 'JetBrains Mono', monospace; font-size: 16px; /* Fixed for mobile zoom */
+            line-height: 1.5;
             padding: 1rem; resize: none;
+        }
+
+        /* --- Welcome Popup (New) --- */
+        .welcome-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            z-index: 200;
+            display: none; /* Hidden by default */
+            align-items: center; justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .welcome-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .welcome-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            max-width: 500px;
+            width: 100%;
+            animation: popupFloat 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popupFloat {
+            from { transform: translateY(30px) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .welcome-img {
+            width: 100%;
+            height: auto;
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            display: block;
+        }
+
+        .welcome-btn {
+            background: linear-gradient(135deg, var(--primary), #db2777);
+            color: white; border: none; padding: 14px 32px; border-radius: 50px;
+            font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 15px var(--primary-glow);
+            font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .welcome-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px var(--primary-glow);
         }
 
         /* --- Coffee Modal --- */
@@ -315,6 +393,9 @@
             text-align: center;
             transform: translateY(20px);
             transition: transform 0.3s;
+            max-height: 90vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .modal-overlay.active .glass-modal { transform: translateY(0); }
 
@@ -328,6 +409,7 @@
             box-shadow: 0 4px 15px rgba(255, 221, 0, 0.3);
             transition: transform 0.2s;
             width: 100%; justify-content: center;
+            font-size: 16px; /* Prevent zoom */
         }
         .coffee-btn-modal:hover { transform: scale(1.05); }
 
@@ -336,6 +418,7 @@
             background: transparent; border: 1px solid var(--border); color: var(--text-muted);
             padding: 10px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
             transition: all 0.2s;
+            width: 100%;
         }
         .close-modal-btn:hover { background: var(--bg-surface); color: white; }
 
@@ -349,6 +432,7 @@
         /* --- View Specifics --- */
         .about-container {
             flex: 1; padding: 1.5rem; overflow-y: auto; max-width: 800px; margin: 0 auto; width: 100%;
+            -webkit-overflow-scrolling: touch;
         }
         .step {
             background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px;
@@ -369,13 +453,14 @@
         .made-with { color: var(--text-muted); font-size: 0.95rem; }
         .heart-icon { color: var(--primary); display: inline-block; animation: heartbeat 1.5s infinite; }
         
-        .sidebar-footer { padding: 1rem; border-top: 1px solid var(--border); background: rgba(0,0,0,0.2); }
+        .sidebar-footer { padding: 1rem; border-top: 1px solid var(--border); background: rgba(0,0,0,0.2); flex-shrink: 0; }
         .btn-generate {
             width: 100%;
             background: linear-gradient(135deg, var(--primary), #db2777);
             color: white; border: none; padding: 12px; border-radius: 8px;
             font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;
             box-shadow: 0 4px 15px var(--primary-glow);
+            font-size: 16px; /* Prevent zoom */
         }
 
         @keyframes heartbeat { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
@@ -391,8 +476,9 @@
             .close-sidebar-btn { display: block; }
             .mobile-menu-btn { display: block; }
             .line-numbers { display: none; }
-            textarea { padding-left: 1rem; }
+            #output { padding-left: 1rem; }
             
+            /* Ensure overlay is below sidebar */
             .overlay {
                 position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 40;
                 opacity: 0; pointer-events: none; transition: opacity 0.3s;
@@ -406,7 +492,7 @@
         
         @media (min-width: 769px) {
             .line-numbers { display: block; }
-            textarea { padding-left: 1.5rem; }
+            #output { padding-left: 1.5rem; }
         }
     </style>
 </head>
@@ -417,6 +503,16 @@
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
         <div class="orb orb-3"></div>
+    </div>
+
+    <!-- 1. Welcome Popup (First Popup) -->
+    <div class="welcome-overlay" id="welcomeModal">
+        <div class="welcome-content">
+            <img src="https://z-cdn-media.chatglm.cn/files/2bb9c9d5-0534-48f5-be45-cbd402499068.png?auth_key=1866904011-79589d48c89448d986d7c6aa0aaa82fb-0-36d684d18384e8476e8179b098700a92" alt="Welcome" class="welcome-img">
+            <button class="welcome-btn" onclick="closeWelcome()">
+                Okay, got it <i class="ph ph-check-circle"></i>
+            </button>
+        </div>
     </div>
     
     <!-- Mobile Overlay for Sidebar -->
@@ -644,6 +740,36 @@
     </div>
 
     <script>
+        // --- Welcome Logic ---
+        const WELCOME_KEY = 'livery_welcome_seen_v2';
+        
+        function initWelcome() {
+            // Only show if not seen before
+            if (localStorage.getItem(WELCOME_KEY) !== 'true') {
+                const modal = document.getElementById('welcomeModal');
+                modal.style.display = 'flex';
+                // Small delay to allow display:flex to apply before adding active class for transition
+                setTimeout(() => {
+                    modal.classList.add('active');
+                }, 10);
+            }
+        }
+
+        function closeWelcome() {
+            const modal = document.getElementById('welcomeModal');
+            modal.classList.remove('active'); // Fade out
+            
+            setTimeout(() => {
+                modal.style.display = 'none';
+                localStorage.setItem(WELCOME_KEY, 'true');
+            }, 500); // Match CSS transition duration
+        }
+
+        // Run on load
+        window.addEventListener('DOMContentLoaded', initWelcome);
+
+
+        // --- Main App Logic ---
         const els = {
             vehicle: document.getElementById('vehicle'), seed: document.getElementById('seed'),
             livery: document.getElementById('livery'), wheels: document.getElementById('wheels'), scene: document.getElementById('scene'),
